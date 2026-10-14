@@ -1,4 +1,4 @@
-# Honeywell Thermostat Card
+# Obs Thermostat Card
 
 Carte thermostat pour Home Assistant (entités `climate`), inspirée de [spencersmb/honeywell-smb-card](https://github.com/spencersmb/honeywell-smb-card) :
 
@@ -15,19 +15,19 @@ Carte thermostat pour Home Assistant (entités `climate`), inspirée de [spencer
 
 1. HACS → ⋮ → **Dépôts personnalisés**.
 2. Ajoute l'URL de ton dépôt GitHub, catégorie **Dashboard** (ou « Lovelace » selon la version).
-3. Installe **Honeywell Thermostat Card**, puis recharge le navigateur (Ctrl+F5).
+3. Installe **Obs Thermostat Card**, puis recharge le navigateur (Ctrl+F5).
 
 Si la ressource n'est pas ajoutée automatiquement : *Paramètres → Tableaux de bord → ⋮ → Ressources* → ajoute
-`/hacsfiles/honeywell-thermostat-card/honeywell-thermostat-card.js` (type **Module JavaScript**).
+`/hacsfiles/obs-thermostat-card/obs-thermostat-card.js` (type **Module JavaScript**).
 
 ## Installation manuelle
 
-Copie `dist/honeywell-thermostat-card.js` dans `/config/www/` et ajoute la ressource `/local/honeywell-thermostat-card.js` (Module JavaScript).
+Copie `dist/obs-thermostat-card.js` dans `/config/www/` et ajoute la ressource `/local/obs-thermostat-card.js` (Module JavaScript).
 
 ## Configuration
 
 ```yaml
-type: custom:honeywell-thermostat-card
+type: custom:obs-thermostat-card
 entity: climate.main_floor
 name: Main Floor
 ```
@@ -53,7 +53,7 @@ git init
 git add .
 git commit -m "Première version"
 git branch -M main
-git remote add origin https://github.com/<ton-user>/honeywell-thermostat-card.git
+git remote add origin https://github.com/<ton-user>/obs-thermostat-card.git
 git push -u origin main
 ```
 

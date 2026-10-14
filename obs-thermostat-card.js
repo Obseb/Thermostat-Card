@@ -42,6 +42,7 @@ const I18N = {
     heat: "HEAT TO",
     cool: "COOL TO",
     set: "SET TO",
+    setpoint: "SETPOINT",
     settings: "Settings",
     notfound: "Entity not found",
     actions: { heating: "Heating", cooling: "Cooling", idle: "Idle", off: "Off", drying: "Drying", fan: "Fan", defrosting: "Defrosting" },
@@ -53,6 +54,7 @@ const I18N = {
     heat: "CHAUFFER À",
     cool: "REFROIDIR À",
     set: "RÉGLER À",
+    setpoint: "CONSIGNE",
     settings: "Réglages",
     notfound: "Entité introuvable",
     actions: { heating: "Chauffe", cooling: "Refroidissement", idle: "Inactif", off: "Éteint", drying: "Déshumidification", fan: "Ventilation", defrosting: "Dégivrage" },
@@ -92,7 +94,7 @@ const STYLE = `
   }
   .gear:hover { color: var(--primary-text-color); }
 
-  .top { display: flex; align-items: center; gap: 4cqw; margin-top: 14px; }
+  .top { display: flex; align-items: center; gap: 4cqw; margin-top: 8px; }
   .current {
     flex: 0 0 38%; aspect-ratio: 1.7 / 1; box-sizing: border-box; padding: 0 2cqw;
     border-radius: 22px; background: var(--htc-accent-bg);
@@ -172,7 +174,7 @@ class ObsThermostatCard extends HTMLElement {
 
   setConfig(config) {
     if (!config || !config.entity) throw new Error("Veuillez définir une entité `entity` (climate.xxx).");
-    this._config = { show_presets: true, show_settings: true, show_modes: true, show_mode_title: false, ...config };
+    this._config = { show_presets: true, show_settings: true, show_modes: true, show_mode_title: false, show_subtitle: false, ...config };
     this._build();
     this._update();
   }
@@ -377,6 +379,7 @@ class ObsThermostatCard extends HTMLElement {
 
     // En-tête
     this._setText(E.title, "title", this._config.name || a.friendly_name || this._config.entity);
+    E.subtitle.hidden = !this._config.show_subtitle;
     this._setText(E.subtitle, "subtitle", t.current);
     E.gear.hidden = !this._config.show_settings;
 
@@ -420,8 +423,7 @@ class ObsThermostatCard extends HTMLElement {
         { key: "target_temp_high", label: t.cool },
       ];
     } else {
-      const label = mode === "cool" ? t.cool : mode === "heat" ? t.heat : t.set;
-      targets = [{ key: "temperature", label }];
+      targets = [{ key: "temperature", label: t.setpoint }];
     }
     const html =
       targets
@@ -451,7 +453,8 @@ class ObsThermostatCard extends HTMLElement {
     const supported = s.attributes.hvac_modes || [];
     const known = MODE_ORDER.filter((m) => supported.includes(m));
     const unknown = supported.filter((m) => !MODE_ORDER.includes(m));
-    const modes = this._config.modes ? this._config.modes.filter((m) => supported.includes(m)) : [...known, ...unknown];
+    const wanted = Array.isArray(this._config.modes) && this._config.modes.length ? this._config.modes : null;
+    const modes = wanted ? wanted.filter((m) => supported.includes(m)) : [...known, ...unknown];
     E.modes.style.gridTemplateColumns = `repeat(${Math.max(modes.length, 1)}, 1fr)`;
     const html = modes
       .map((m) => {
@@ -497,11 +500,32 @@ class ObsThermostatCard extends HTMLElement {
 
 // --- Éditeur visuel ------------------------------------------------------
 
-const EDITOR_SCHEMA = [
-  { name: "entity", required: true, selector: { entity: { domain: "climate" } } },
-  { name: "name", selector: { text: {} } },
-  { name: "step", selector: { number: { min: 0.1, max: 5, step: 0.1, mode: "box" } } },
-  { name: "show_modes", selector: { boolean: {} } },
+const buildEditorSchema = (hass, entityId) => {
+  const st = hass && entityId ? hass.states[entityId] : null;
+  const supported = (st && st.attributes.hvac_modes) || MODE_ORDER;
+  const ordered = [
+    ...MODE_ORDER.filter((m) => supported.includes(m)),
+    ...supported.filter((m) => !MODE_ORDER.includes(m)),
+  ];
+  const options = ordered.map((m) => {
+    let label = m;
+    try {
+      label = (hass && hass.localize(`component.climate.entity_component._.state.${m}`)) || m;
+    } catch (e) { /* ignore */ }
+    return { value: m, label };
+  });
+  return [
+    { name: "entity", required: true, selector: { entity: { domain: "climate" } } },
+    { name: "name", selector: { text: {} } },
+    { name: "show_subtitle", selector: { boolean: {} } },
+    { name: "step", selector: { number: { min: 0.1, max: 5, step: 0.1, mode: "box" } } },
+    { name: "show_modes", selector: { boolean: {} } },
+    { name: "modes", selector: { select: { multiple: true, mode: "list", options } } },
+    ...EDITOR_SCHEMA_TAIL,
+  ];
+};
+
+const EDITOR_SCHEMA_TAIL = [
   { name: "show_mode_title", selector: { boolean: {} } },
   { name: "show_presets", selector: { boolean: {} } },
   { name: "show_settings", selector: { boolean: {} } },
@@ -510,8 +534,10 @@ const EDITOR_SCHEMA = [
 const EDITOR_LABELS = {
   entity: "Entité (climate)",
   name: "Nom (optionnel)",
+  show_subtitle: "Afficher « Température actuelle »",
   step: "Pas de température (optionnel)",
   show_modes: "Afficher les modes",
+  modes: "Modes affichés (vide = tous)",
   show_mode_title: "Afficher le titre « Mode »",
   show_presets: "Afficher les préréglages",
   show_settings: "Afficher l'icône réglages",
@@ -524,8 +550,10 @@ class ObsThermostatCardEditor extends HTMLElement {
   }
 
   set hass(hass) {
+    const first = !this._hass;
     this._hass = hass;
     if (this._form) this._form.hass = hass;
+    if (first && this._config) this._render();
   }
 
   _render() {
@@ -534,7 +562,9 @@ class ObsThermostatCardEditor extends HTMLElement {
       this._form.computeLabel = (s) => EDITOR_LABELS[s.name] || s.name;
       this._form.addEventListener("value-changed", (ev) => {
         ev.stopPropagation();
-        this._config = ev.detail.value;
+        const value = { ...ev.detail.value };
+        if (Array.isArray(value.modes) && value.modes.length === 0) delete value.modes;
+        this._config = value;
         this.dispatchEvent(
           new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: true, composed: true })
         );
@@ -542,8 +572,13 @@ class ObsThermostatCardEditor extends HTMLElement {
       this.appendChild(this._form);
     }
     this._form.hass = this._hass;
-    this._form.schema = EDITOR_SCHEMA;
-    this._form.data = { show_modes: true, show_mode_title: false, show_presets: true, show_settings: true, ...this._config };
+    const schema = buildEditorSchema(this._hass, this._config && this._config.entity);
+    const key = JSON.stringify(schema);
+    if (key !== this._schemaKey) {
+      this._schemaKey = key;
+      this._form.schema = schema;
+    }
+    this._form.data = { show_subtitle: false, show_modes: true, show_mode_title: false, show_presets: true, show_settings: true, ...this._config };
   }
 }
 

@@ -36,12 +36,28 @@ name: Main Floor
 |-----------------|---------|----------------|-----------------------------------------------------|
 | `entity`        | string  | **requis**     | Entité `climate.xxx`                                |
 | `name`          | string  | nom de l'entité| Titre de la carte                                   |
+| `show_subtitle` | boolean | `false`       | Affiche « Température actuelle » sous le titre       |
 | `step`          | number  | auto           | Pas de la consigne (1 en °F, 0,5 en °C par défaut)  |
 | `show_modes`    | boolean | `true`         | Affiche les boutons de mode                         |
 | `show_mode_title` | boolean | `false`      | Affiche le titre « Mode » au-dessus des boutons     |
-| `modes`         | liste   | tous           | Limite/ordonne les modes affichés, ex. `[heat, off]`|
+| `modes`         | liste   | tous           | Modes affichés, dans cet ordre (aussi dans l'éditeur visuel) |
 | `show_presets`  | boolean | `true`         | Affiche le menu de préréglages                      |
 | `show_settings` | boolean | `true`         | Affiche l'icône ⚙                                   |
+
+### Choisir les modes affichés
+
+Dans l'éditeur visuel, coche les modes voulus. En YAML (l'ordre de la liste est celui des icônes) :
+
+```yaml
+type: custom:obs-thermostat-card
+entity: climate.main_floor
+modes:
+  - heat
+  - cool
+  - "off"
+```
+
+> Pense aux guillemets autour de `"off"` en YAML (sinon il est lu comme `false`).
 
 ### Personnalisation du thème
 

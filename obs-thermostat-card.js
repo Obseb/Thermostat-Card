@@ -94,13 +94,13 @@ const STYLE = `
 
   .top { display: flex; align-items: center; gap: 4cqw; margin-top: 14px; }
   .current {
-    position: relative; flex: 0 0 36%; aspect-ratio: 1.8 / 1;
+    flex: 0 0 38%; aspect-ratio: 1.7 / 1; box-sizing: border-box; padding: 0 2cqw;
     border-radius: 22px; background: var(--htc-accent-bg);
-    display: flex; align-items: center; justify-content: center;
-    color: var(--htc-accent); transition: background .3s, color .3s;
+    display: flex; align-items: center; justify-content: center; gap: 1cqw;
+    color: var(--htc-accent); transition: background .3s, color .3s; white-space: nowrap;
   }
-  .current .num { font-size: 15cqw; font-weight: 400; line-height: 1; letter-spacing: -0.02em; }
-  .current .unit { position: absolute; top: 10px; right: 14px; font-size: 3.8cqw; font-weight: 500; }
+  .current .num { font-size: 13cqw; font-weight: 400; line-height: 1; letter-spacing: -0.02em; }
+  .current .unit { align-self: flex-start; margin-top: 3.2cqw; font-size: 3.8cqw; font-weight: 500; line-height: 1; }
 
   .targets { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
   .target { display: flex; flex-direction: column; align-items: center; width: 100%; }
@@ -123,6 +123,8 @@ const STYLE = `
   .status { font-size: 4cqw; font-weight: 500; color: var(--htc-muted); }
 
   .section-title { font-size: 4.2cqw; font-weight: 500; color: var(--htc-muted); margin: 20px 0 10px; }
+  .modes-block { margin-top: 14px; }
+  .modes-block .section-title { margin-top: 0; }
   .modes { display: grid; gap: 12px; }
   .mode {
     height: 14cqw; max-height: 74px; min-height: 52px; border: none; border-radius: 18px;
@@ -170,7 +172,7 @@ class ObsThermostatCard extends HTMLElement {
 
   setConfig(config) {
     if (!config || !config.entity) throw new Error("Veuillez définir une entité `entity` (climate.xxx).");
-    this._config = { show_presets: true, show_settings: true, show_modes: true, ...config };
+    this._config = { show_presets: true, show_settings: true, show_modes: true, show_mode_title: false, ...config };
     this._build();
     this._update();
   }
@@ -444,6 +446,7 @@ class ObsThermostatCard extends HTMLElement {
     const E = this._els;
     E.modesBlock.hidden = !this._config.show_modes;
     if (!this._config.show_modes) return;
+    E.modeTitle.hidden = !this._config.show_mode_title;
     this._setText(E.modeTitle, "modeTitle", this._t.mode);
     const supported = s.attributes.hvac_modes || [];
     const known = MODE_ORDER.filter((m) => supported.includes(m));
@@ -499,6 +502,7 @@ const EDITOR_SCHEMA = [
   { name: "name", selector: { text: {} } },
   { name: "step", selector: { number: { min: 0.1, max: 5, step: 0.1, mode: "box" } } },
   { name: "show_modes", selector: { boolean: {} } },
+  { name: "show_mode_title", selector: { boolean: {} } },
   { name: "show_presets", selector: { boolean: {} } },
   { name: "show_settings", selector: { boolean: {} } },
 ];
@@ -508,6 +512,7 @@ const EDITOR_LABELS = {
   name: "Nom (optionnel)",
   step: "Pas de température (optionnel)",
   show_modes: "Afficher les modes",
+  show_mode_title: "Afficher le titre « Mode »",
   show_presets: "Afficher les préréglages",
   show_settings: "Afficher l'icône réglages",
 };
@@ -538,7 +543,7 @@ class ObsThermostatCardEditor extends HTMLElement {
     }
     this._form.hass = this._hass;
     this._form.schema = EDITOR_SCHEMA;
-    this._form.data = { show_modes: true, show_presets: true, show_settings: true, ...this._config };
+    this._form.data = { show_modes: true, show_mode_title: false, show_presets: true, show_settings: true, ...this._config };
   }
 }
 

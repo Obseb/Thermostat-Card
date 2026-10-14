@@ -38,6 +38,7 @@ name: Main Floor
 | `name`          | string  | nom de l'entité| Titre de la carte                                   |
 | `step`          | number  | auto           | Pas de la consigne (1 en °F, 0,5 en °C par défaut)  |
 | `show_modes`    | boolean | `true`         | Affiche les boutons de mode                         |
+| `show_mode_title` | boolean | `false`      | Affiche le titre « Mode » au-dessus des boutons     |
 | `modes`         | liste   | tous           | Limite/ordonne les modes affichés, ex. `[heat, off]`|
 | `show_presets`  | boolean | `true`         | Affiche le menu de préréglages                      |
 | `show_settings` | boolean | `true`         | Affiche l'icône ⚙                                   |
